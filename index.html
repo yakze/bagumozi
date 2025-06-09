@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>バグ文字生成ツール</title>
+  <style>
+    /* 既存のスタイル */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #1e1e1e;
+      color: #f0f0f0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      text-align: center;
+      position: relative;
+    }
+
+    .moderator-badge {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background-color: #ff6347;
+      color: #fff;
+      padding: 8px 15px;
+      border-radius: 12px;
+      font-size: 1em;
+      display: none;
+    }
+
+    .container {
+      background-color: #333;
+      padding: 30px;
+      border-radius: 8px;
+      width: 100%;
+      max-width: 500px;
+      box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.5);
+    }
+
+    h1 {
+      color: #ff6347;
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 10px;
+      font-weight: bold;
+      color: #ddd;
+    }
+
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border-radius: 4px;
+      border: none;
+      font-size: 1em;
+      background-color: #444;
+      color: #fff;
+    }
+
+    button {
+      background-color: #ff6347;
+      color: #fff;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      font-size: 1em;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #e5533d;
+    }
+
+    .moderator-mode {
+      background-color: #444;
+      color: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+      display: none;
+    }
+
+    .moderator-mode h2 {
+      color: #ff6347;
+    }
+
+    .moderator-mode button {
+      background-color: #28a745;
+    }
+
+    .moderator-mode button:hover {
+      background-color: #218838;
+    }
+
+    #moderator-auth {
+      margin-top: 20px;
+      background-color: #444;
+      padding: 20px;
+      border-radius: 8px;
+    }
+
+    #moderator-auth input {
+      width: 70%;
+      margin-right: 10px;
+    }
+
+    #log {
+      margin-top: 20px;
+      background-color: #222;
+      padding: 15px;
+      border-radius: 8px;
+      color: #ddd;
+      font-size: 0.9em;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .log-info {
+      color: #28a745;
+    }
+
+    .log-warning {
+      color: #f39c12;
+    }
+
+    .log-error {
+      color: #e74c3c;
+    }
+
+    .button-group {
+      margin-top: 10px;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .auto-generate-btn {
+      background-color: #ffc107;
+    }
+
+    .auto-generate-btn:hover {
+      background-color: #e0a800;
+    }
+  </style>
+</head>
+<body>
+  <div id="moderator-badge" class="moderator-badge">モデレーター</div>
+
+  <div class="container">
+    <h1>バグ文字生成ツール</h1>
+    <label for="text-input">文字を入力:</label>
+    <input type="text" id="text-input" placeholder="文字を入力…">
+    <button onclick="generateZalgo()">バグ文字を生成</button>
+
+    <div id="output"></div>
+
+    <div class="button-group">
+      <button onclick="copyToClipboard()">クリップボードにコピー</button>
+    </div>
+
+    <div class="description">
+      <p>ゲームの名前などに使う事ができます。更にバグらせたい時は、作ったバグ文字をもう一度バグらせると作れます。</p>
+      <p>作成者: aaa</p>
+    </div>
+
+    <div id="moderator-auth">
+      <label for="moderator-password">モデレーター認証パスワード:</label>
+      <input type="password" id="moderator-password" placeholder="パスワードを入力">
+      <button onclick="authenticateModerator()">認証</button>
+    </div>
+
+    <div class="moderator-mode" id="moderator-section">
+      <h2>モデレーター専用モード</h2>
+      <p>モデレーター専用の管理機能を表示しています。</p>
+      <div class="button-group">
+        <button onclick="clearOutput()">出力をクリア</button>
+        <button onclick="clearLogs()">ログをクリア</button>
+        <button class="auto-generate-btn" onclick="toggleAutoGenerate()">自動生成モードを切り替え</button>
+      </div>
+
+      <div id="log">
+        <h3>ログ:</h3>
+        <div id="log-info"></div>
+        <div id="log-warning"></div>
+        <div id="log-error"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const zalgoChars = {
+      up: ["̍","̎","̄","̅","̿","̑","̆","̐","͒","͗","͑","̇","̈","̊","͂","̓","̈́","͊","͋","͌","̃","̂","̌","͐","̀","́","̋","̏","̒","̓","̔","̽","̾","͆","̚"],
+      mid: ["̕","̛","̀","́","͘","̡","̢","̧","̨","̴","̵","̶","͜","͝","͞","͟","͠","͢","̸","̷","͡"," ҉"],
+      down: ["̞","̟","̠","̤","̥","̦","̩","̪","̫","̬","̭","̮","̯","̰","̱","̲","̳","̹","̺","̻","̼","ͅ","͇","͈","͉","͍","͎","͓","͔","͕","͖","͙","͚","̣"]
+    };
+
+    let autoGenerateEnabled = false;
+    let autoGenerateInterval;
+
+    function getRandomZalgoChar(type) {
+      return zalgoChars[type][Math.floor(Math.random() * zalgoChars[type].length)];
+    }
+
+    function generateZalgoText(text) {
+      return text.split('').map(char => {
+        if (char === ' ') return char;
+        let zalgoChar = char;
+        for (let i = 0; i < Math.random() * 3 + 1; i++) zalgoChar += getRandomZalgoChar('up');
+        for (let i = 0; i < Math.random() * 3 + 1; i++) zalgoChar += getRandomZalgoChar('mid');
+        for (let i = 0; i < Math.random() * 3 + 1; i++) zalgoChar += getRandomZalgoChar('down');
+        return zalgoChar;
+      }).join('');
+    }
+
+    function generateZalgo() {
+      const text = document.getElementById("text-input").value;
+      const zalgoText = generateZalgoText(text);
+      document.getElementById("output").textContent = zalgoText;
+      logInfo("バグ文字が生成されました: " + zalgoText);
+    }
+
+    function copyToClipboard() {
+      const output = document.getElementById("output").textContent;
+      if (output) {
+        navigator.clipboard.writeText(output)
+          .then(() => {
+            alert("クリップボードにコピーしました！");
+            logInfo("バグ文字がクリップボードにコピーされました");
+          })
+          .catch((err) => {
+            console.error("クリップボードへのコピーに失敗しました:", err);
+            logError("クリップボードへのコピーに失敗しました");
+          });
+      } else {
+        alert("コピーするテキストがありません！");
+      }
+    }
+
+    function authenticateModerator() {
+      const password = document.getElementById("moderator-password").value;
+      if (password === "mod1324") {
+        document.cookie = "moderator=true;path=/;max-age=31536000"; // 1年有効
+        logInfo("モデレーター認証に成功しました");
+        document.getElementById("moderator-auth").style.display = "none";
+        document.getElementById("moderator-section").style.display = "block";
+        document.getElementById("moderator-badge").style.display = "inline-block";
+      } else {
+        alert("パスワードが間違っています！");
+        logError("モデレーター認証に失敗しました");
+      }
+    }
+
+    function checkModeratorStatus() {
+      const cookies = document.cookie.split('; ');
+      const moderatorCookie = cookies.find(cookie => cookie.startsWith('moderator='));
+      if (moderatorCookie && moderatorCookie.split('=')[1] === 'true') {
+        document.getElementById("moderator-auth").style.display = "none";
+        document.getElementById("moderator-section").style.display = "block";
+        document.getElementById("moderator-badge").style.display = "inline-block";
+      }
+    }
+
+    function logInfo(message) {
+      const logInfoElement = document.getElementById("log-info");
+      const newLog = document.createElement("div");
+      newLog.classList.add("log-info");
+      newLog.textContent = message;
+      logInfoElement.appendChild(newLog);
+    }
+
+    function logError(message) {
+      const logErrorElement = document.getElementById("log-error");
+      const newLog = document.createElement("div");
+      newLog.classList.add("log-error");
+      newLog.textContent = message;
+      logErrorElement.appendChild(newLog);
+    }
+
+    function clearLogs() {
+      document.getElementById("log-info").innerHTML = "";
+      document.getElementById("log-warning").innerHTML = "";
+      document.getElementById("log-error").innerHTML = "";
+      logInfo("ログがクリアされました");
+    }
+
+    function clearOutput() {
+      document.getElementById("output").textContent = "";
+      logInfo("出力がクリアされました");
+    }
+
+    function toggleAutoGenerate() {
+      if (autoGenerateEnabled) {
+        clearInterval(autoGenerateInterval);
+        logInfo("自動生成モードを停止しました");
+      } else {
+        autoGenerateInterval = setInterval(() => {
+          const text = document.getElementById("text-input").value;
+          const zalgoText = generateZalgoText(text);
+          document.getElementById("output").textContent = zalgoText;
+          logInfo("自動生成モードでバグ文字が生成されました: " + zalgoText);
+        }, 3000);
+        logInfo("自動生成モードが開始されました");
+      }
+      autoGenerateEnabled = !autoGenerateEnabled;
+    }
+
+    // ページロード時にモデレーター状態をチェック
+    window.onload = checkModeratorStatus;
+  </script>
+</body>
+</html>
